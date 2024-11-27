@@ -266,6 +266,129 @@ def plot_signal_decay_comparison(results_df, direction, log_scale=True, save_pat
     else:
         plt.close()
 
+def save_signal_decay_plots(results_df, log_scale=True, save_dir="signal_decay_plots"):
+    """
+    Save signal decay plots for all datasets and directions into individual files.
+
+    Parameters:
+        results_df (DataFrame): DataFrame containing signal decay metrics.
+        log_scale (bool): If True, use log scale for signal intensity (Y-axis).
+        save_dir (str): Directory to save the plots.
+    """
+    # Ensure the output directory exists
+    os.makedirs(save_dir, exist_ok=True)
+
+    # Get unique datasets and directions
+    datasets = results_df["Dataset"].unique()
+    directions = results_df["Direction"].unique()
+
+    for dataset in datasets:
+        for direction in directions:
+            # Filter for dataset and direction
+            filtered_df = results_df[
+                (results_df["Dataset"] == dataset) & (results_df["Direction"] == direction)
+            ]
+
+            # Skip if no data is available for this combination
+            if filtered_df.empty:
+                print(f"Skipping: No data for {dataset} - {direction}")
+                continue
+
+            # Create a new figure
+            plt.figure(figsize=(6, 6))
+
+            # Plot signal decay for each ROI
+            for roi_id in filtered_df["ROI"].unique():
+                roi_data = filtered_df[filtered_df["ROI"] == roi_id]
+                plt.plot(
+                    roi_data["B-Value"],
+                    roi_data["Mean Intensity"],
+                    'o-', label=f"ROI {roi_id}"
+                )
+
+            # Customize plot
+            plt.title(f"{dataset.capitalize()} - {direction}", fontsize=14)
+            plt.xlabel("b-value (s/mm²)", fontsize=12)
+            plt.ylabel("Log Mean Intensity" if log_scale else "Mean Intensity", fontsize=12)
+            if log_scale:
+                plt.yscale("log")
+            plt.grid(True, which="both", linestyle="--", linewidth=0.5)
+            plt.legend(fontsize=10)
+
+            # Save the plot
+            save_path = os.path.join(save_dir, f"{dataset}_{direction}_signal_decay.png")
+            plt.savefig(save_path, dpi=300)
+            print(f"Plot saved: {save_path}")
+
+            # Close the figure to free memory
+            plt.close()
+
+def save_side_by_side_signal_decay_plots(results_df, log_scale=True, save_dir="side_by_side_plots"):
+    """
+    Save side-by-side signal decay plots for all datasets in a single figure for each direction.
+
+    Parameters:
+        results_df (DataFrame): DataFrame containing signal decay metrics.
+        log_scale (bool): If True, use log scale for signal intensity (Y-axis).
+        save_dir (str): Directory to save the plots.
+    """
+    # Ensure the output directory exists
+    os.makedirs(save_dir, exist_ok=True)
+
+    # Get unique directions
+    directions = results_df["Direction"].unique()
+
+    for direction in directions:
+        # Create a figure with subplots for each dataset
+        datasets = results_df["Dataset"].unique()
+        num_datasets = len(datasets)
+        fig, axes = plt.subplots(1, num_datasets, figsize=(5 * num_datasets, 6), sharey=True)
+
+        if num_datasets == 1:
+            axes = [axes]  # Ensure axes is iterable for a single subplot
+
+        for ax, dataset in zip(axes, datasets):
+            # Filter for dataset and direction
+            filtered_df = results_df[
+                (results_df["Dataset"] == dataset) & (results_df["Direction"] == direction)
+            ]
+
+            if filtered_df.empty:
+                ax.set_title(f"{dataset.capitalize()} - No Data")
+                ax.axis("off")
+                continue
+
+            # Plot signal decay for each ROI
+            for roi_id in filtered_df["ROI"].unique():
+                roi_data = filtered_df[filtered_df["ROI"] == roi_id]
+                ax.plot(
+                    roi_data["B-Value"],
+                    roi_data["Mean Intensity"],
+                    'o-', label=f"ROI {roi_id}"
+                )
+
+            # Customize subplot
+            ax.set_title(f"{dataset.capitalize()}", fontsize=14)
+            ax.set_xlabel("b-value (s/mm²)", fontsize=12)
+            if log_scale:
+                ax.set_yscale("log")
+            ax.grid(True, which="both", linestyle="--", linewidth=0.5)
+            ax.legend(fontsize=10)
+
+        # Set shared Y-axis label
+        fig.text(0.04, 0.5, "Log Mean Intensity" if log_scale else "Mean Intensity",
+                 va="center", rotation="vertical", fontsize=12)
+
+        # Save the figure
+        save_path = os.path.join(save_dir, f"signal_decay_{direction}_side_by_side.png")
+        plt.tight_layout()
+        plt.savefig(save_path, dpi=300)
+        print(f"Side-by-side plot saved: {save_path}")
+
+        # Close the figure to free memory
+        plt.close()
+
+
 
 
 
